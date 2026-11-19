@@ -9,11 +9,11 @@ Built from recorded links, not written by a model: requirement key → plan item
 <!-- sdlc:auto:start matrix -->
 | Requirement | Epic | Title | Plan items | Sprint | Design | Code | Commits | Ticket | Tests | AC tests | Deployed |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| US-001 | EPIC-001 | Sign up as an organiser | US-001 | 1 | POST /auth/signup, api, db, organisers, sessions, spa | backend/app/routers/auth.py, backend/app/schemas.py, backend/app/security.py, backend/tests/integration/test_auth.py, backend/tests/unit/test_schemas.py +6 more | df77673 | delivered | succeeded | 4/4 tested · 4/4 passing | — |
-| US-002 | EPIC-001 | Sign in as an organiser | US-002 | 1 | POST /auth/signin, api, organisers, sessions, spa | — | df77673 | delivered | not run | 2/3 tested · 2/3 passing | — |
-| US-003 | EPIC-001 | Sign out | US-003 | 1 | POST /auth/signout, api, sessions, spa | backend/app/routers/auth.py, backend/tests/integration/test_auth.py, frontend/e2e/signout.spec.ts, frontend/src/App.guard.test.tsx, frontend/src/App.tsx +1 more | df77673 | delivered | succeeded | 0/2 tested · 0/2 passing | — |
-| US-004 | EPIC-001 | Session security for organiser pages | US-004 | 1 | api, sessions, spa | — | df77673 | delivered | not run | 1/2 tested · 1/2 passing | — |
-| US-005 | EPIC-002 | Create an event | US-005 | 1 | POST /events, api, db, events, spa | — | — | skipped | not run | 0/5 tested · 0/5 passing | — |
+| US-001 | EPIC-001 | Sign up as an organiser | US-001 | 1 | POST /auth/signup, api, db, organisers, sessions, spa | backend/app/routers/auth.py, backend/app/schemas.py, backend/app/security.py, backend/tests/integration/test_auth.py, backend/tests/unit/test_schemas.py +6 more | df77673 | delivered | succeeded | 4/4 tested · 4/4 passing | b42597d78e66 |
+| US-002 | EPIC-001 | Sign in as an organiser | US-002 | 1 | POST /auth/signin, api, organisers, sessions, spa | — | df77673 | delivered | not run | 2/3 tested · 2/3 passing | b42597d78e66 |
+| US-003 | EPIC-001 | Sign out | US-003 | 1 | POST /auth/signout, api, sessions, spa | backend/app/routers/auth.py, backend/tests/integration/test_auth.py, frontend/e2e/signout.spec.ts, frontend/src/App.guard.test.tsx, frontend/src/App.tsx +1 more | df77673 | delivered | succeeded | 0/2 tested · 0/2 passing | b42597d78e66 |
+| US-004 | EPIC-001 | Session security for organiser pages | US-004 | 1 | api, sessions, spa | — | df77673 | delivered | not run | 1/2 tested · 1/2 passing | b42597d78e66 |
+| US-005 | EPIC-002 | Create an event | US-005 | 1 | POST /events, api, db, events, spa | — | — | skipped | not run | 0/5 tested · 0/5 passing | b42597d78e66 |
 | US-006 | EPIC-002 | Edit my event | US-006 | 2 | PUT /events/{event_id}, api, events, spa | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
 | US-007 | EPIC-002 | Delete my event | US-007 | 2 | DELETE /events/{event_id}, api, events, rsvps, spa | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
 | US-008 | EPIC-002 | View my events list | US-008 | 2 | GET /events, api, events, rsvps, spa | — | — | not started | not run | 0/3 tested · 0/3 passing | — |
