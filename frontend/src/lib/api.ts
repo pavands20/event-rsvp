@@ -11,8 +11,7 @@
 // The generated screens do NOT use this yet -- they render seeded sample data, exactly as
 // they were approved. This is the seam to replace that with real calls, one screen at a
 // time.
-export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 // The shared bearer the deployed API expects (its SECRET_KEY). The platform bakes the
 // same value into both sides at deploy time, so authenticated calls work out of the box.
@@ -64,7 +63,20 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     },
   });
   if (!response.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${path} failed: ${response.status}`);
+    // NFR-008: surface the exact `detail` the API returned so the screen can
+    // show "This email is already in use" rather than a generic status string.
+    // Fall back to a status line when the body is not JSON or lacks `detail`
+    // (e.g. a proxy 502) so a caller always gets a readable message.
+    let detail = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && typeof body.detail === "string" && body.detail.length > 0) {
+        detail = body.detail;
+      }
+    } catch {
+      // Non-JSON body: keep the status fallback.
+    }
+    throw new Error(detail);
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }

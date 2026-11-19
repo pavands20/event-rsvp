@@ -11,13 +11,21 @@ the ``bcrypt`` package is used here instead. ``backend/conftest.py`` patches
 from __future__ import annotations
 
 import logging
+import secrets
+import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
 import bcrypt
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import get_db
 from app.models import Organiser
+from app.models import Session as SessionModel
 
 logger = logging.getLogger(__name__)
 
@@ -62,3 +70,47 @@ def seed_initial_users(session: Session) -> None:
         _seed_one(session, settings.bootstrap_admin_email, settings.bootstrap_admin_password)
     if settings.smoke_test_email and settings.smoke_test_password:
         _seed_one(session, settings.smoke_test_email, settings.smoke_test_password)
+
+
+# -- Sessions and auth dependency --------------------------------------------
+
+_SESSION_TOKEN_BYTES = 32
+# Tokens are valid until explicitly revoked; set a far-future expiry so the
+# NOT NULL column is satisfied without imposing a real timeout.
+_SESSION_TTL = timedelta(days=365 * 50)
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def create_session(db: Session, organiser_id: uuid.UUID) -> str:
+    """Create a new session row and return its opaque token."""
+    token = secrets.token_urlsafe(_SESSION_TOKEN_BYTES)
+    db.add(
+        SessionModel(
+            organiser_id=organiser_id,
+            token=token,
+            expires_at=datetime.now(UTC) + _SESSION_TTL,
+        )
+    )
+    db.commit()
+    return token
+
+
+def get_current_session(
+    db: Annotated[Session, Depends(get_db)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)] = None,
+) -> SessionModel:
+    """Resolve the Bearer token to a live session row, or raise 401."""
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    session = db.scalar(select(SessionModel).where(SessionModel.token == credentials.credentials))
+    if session is None or session.revoked or session.expires_at < datetime.now(UTC):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return session
+
+
+def get_current_organiser(
+    session: Annotated[SessionModel, Depends(get_current_session)],
+) -> Organiser:
+    """The authenticated organiser for protected endpoints."""
+    return session.organiser

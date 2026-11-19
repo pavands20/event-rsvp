@@ -21,9 +21,10 @@ def test_response_enum_values() -> None:
     assert ResponseEnum("Maybe") is ResponseEnum.maybe
 
 
-def test_signup_rejects_short_password() -> None:
-    with pytest.raises(ValidationError):
-        SignupRequest(email="organiser@example.com", password="short")
+def test_signup_schema_accepts_short_password() -> None:
+    """Password length is validated by the handler (400), not the schema (422)."""
+    req = SignupRequest(email="organiser@example.com", password="short")
+    assert req.password == "short"
 
 
 def test_signup_accepts_valid_input() -> None:
