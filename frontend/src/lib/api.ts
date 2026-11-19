@@ -49,6 +49,22 @@ export function clearSessionToken(): void {
   }
 }
 
+// NFR-008: carries the API's raw `detail` so a screen can map field-specific
+// validation errors. FastAPI returns `detail` as a string for custom checks
+// (e.g. "start_at must be in the future") and as a list of Pydantic error
+// objects (`[{ loc, msg, type, ... }]`) for schema validation. The `message`
+// is always a readable string so callers that only need a message still work.
+export class ApiError extends Error {
+  status: number;
+  detail: unknown;
+  constructor(message: string, status: number, detail: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const bearer = getSessionToken() ?? API_SECRET_KEY;
   // Join with exactly one slash: API_BASE_URL is baked with a trailing slash (the API
@@ -75,19 +91,30 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
       }
     }
     // NFR-008: surface the exact `detail` the API returned so the screen can
-    // show "This email is already in use" rather than a generic status string.
-    // Fall back to a status line when the body is not JSON or lacks `detail`
+    // show "This email is already in use" rather than a generic status string,
+    // and map field-specific Pydantic validation errors to their inputs. Fall
+    // back to a status line when the body is not JSON or lacks `detail`
     // (e.g. a proxy 502) so a caller always gets a readable message.
-    let detail = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
+    let detail: unknown = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
+    let message = `${init?.method ?? "GET"} ${path} failed: ${response.status}`;
     try {
       const body = await response.json();
-      if (body && typeof body.detail === "string" && body.detail.length > 0) {
+      if (body && "detail" in body) {
         detail = body.detail;
+        if (typeof body.detail === "string" && body.detail.length > 0) {
+          message = body.detail;
+        } else if (Array.isArray(body.detail) && body.detail.length > 0) {
+          message =
+            body.detail
+              .map((e: { msg?: string }) => e?.msg)
+              .filter(Boolean)
+              .join("; ") || message;
+        }
       }
     } catch {
       // Non-JSON body: keep the status fallback.
     }
-    throw new Error(detail);
+    throw new ApiError(message, response.status, detail);
   }
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }

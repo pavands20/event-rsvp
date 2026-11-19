@@ -9,10 +9,10 @@ frontend can be built against the agreed contract before any logic lands.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer
 
 
 class ResponseEnum(StrEnum):
@@ -66,6 +66,8 @@ class EventUpdate(EventCreate):
 
 
 class EventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     public_token: str
     title: str
@@ -75,6 +77,14 @@ class EventResponse(BaseModel):
     capacity: int | None
     rsvps_open: bool
 
+    @field_serializer("start_at")
+    def _serialize_start_at(self, value: datetime) -> str:
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        else:
+            value = value.astimezone(UTC)
+        return value.isoformat().replace("+00:00", "Z")
+
 
 class EventCounts(BaseModel):
     yes: int
@@ -83,11 +93,21 @@ class EventCounts(BaseModel):
 
 
 class EventListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     title: str
     start_at: datetime
-    location: str
+    capacity: int | None
     counts: EventCounts
+
+    @field_serializer("start_at")
+    def _serialize_start_at(self, value: datetime) -> str:
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        else:
+            value = value.astimezone(UTC)
+        return value.isoformat().replace("+00:00", "Z")
 
 
 class RsvpStatusUpdate(BaseModel):
