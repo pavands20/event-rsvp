@@ -1,13 +1,14 @@
 // @ts-nocheck -- generated from the approved design under its JS runtime contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React from "react";
 
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
+import { apiFetch, setSessionToken } from "@/lib/api";
 
 const PRODUCT = "Event RSVP";
 
-const REGISTERED = ["organiser@clubboard.eu"];
+type AuthResponse = { token: string; organiser: { id: number; email: string } };
 
 export default function Screen() {
   const navigate = useNavigate();
@@ -16,12 +17,11 @@ export default function Screen() {
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [registered, setRegistered] = React.useState([...REGISTERED]);
 
   const rule = `2px solid ${brand.primaryColor}`;
   const field = { border: rule, borderRadius: brand.radius, height: 44 };
 
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
@@ -30,29 +30,27 @@ export default function Screen() {
       return;
     }
 
-    if (tab === "signup") {
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters.");
-        return;
-      }
-      if (registered.includes(email.trim().toLowerCase())) {
-        setError("This email is already in use. Try signing in instead.");
-        return;
-      }
-      setRegistered((prev) => [...prev, email.trim().toLowerCase()]);
-    } else {
-      if (!registered.includes(email.trim().toLowerCase())) {
-        setError("Invalid email or password.");
-        return;
-      }
-    }
-
     setLoading(true);
-    setTimeout(() => navigate("events"), 500);
-  };
+    try {
+      const path = tab === "signup" ? "/auth/signup" : "/auth/signin";
+      const data = await apiFetch<AuthResponse>(path, {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      setSessionToken(data.token);
+      navigate("events");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white" style={{ color: brand.primaryColor, fontFamily: brand.fontBody }}>
+    <div
+      className="flex min-h-screen flex-col bg-white"
+      style={{ color: brand.primaryColor, fontFamily: brand.fontBody }}
+    >
       <style>{`
         input:focus { --tw-ring-color: ${brand.primaryColor}; --tw-ring-offset-color: transparent; }
         button:focus-visible { --tw-ring-color: ${brand.accentColor}; --tw-ring-offset-color: transparent; }
@@ -63,13 +61,21 @@ export default function Screen() {
 
       {/* Row 1: page_title */}
       <header data-wf="b-0-0" className="px-10 py-5" style={{ borderBottom: rule }}>
-        <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: brand.fontHeading }}>{PRODUCT}</h1>
+        <h1 className="text-lg font-bold tracking-tight" style={{ fontFamily: brand.fontHeading }}>
+          {PRODUCT}
+        </h1>
       </header>
 
       <div className="flex flex-1 items-start justify-center px-6 py-12">
         <div className="w-full max-w-[440px]">
           {/* Row 2: tabs */}
-          <div data-wf="b-1-0" role="tablist" aria-label="Authentication" className="flex" style={{ borderBottom: rule }}>
+          <div
+            data-wf="b-1-0"
+            role="tablist"
+            aria-label="Authentication"
+            className="flex"
+            style={{ borderBottom: rule }}
+          >
             <button
               data-wf="i-1-0-0"
               type="button"
@@ -77,10 +83,14 @@ export default function Screen() {
               aria-selected={tab === "signin"}
               aria-controls="auth-form"
               id="tab-signin"
-              onClick={() => { setTab("signin"); setError(""); }}
+              onClick={() => {
+                setTab("signin");
+                setError("");
+              }}
               className="px-6 py-3 text-sm font-bold uppercase tracking-[0.16em] transition-colors focus:outline-none focus:ring-2"
               style={{
-                borderBottom: tab === "signin" ? `2px solid ${brand.primaryColor}` : `2px solid transparent`,
+                borderBottom:
+                  tab === "signin" ? `2px solid ${brand.primaryColor}` : `2px solid transparent`,
                 marginBottom: "-2px",
                 color: tab === "signin" ? brand.primaryColor : brand.neutralColor,
               }}
@@ -94,10 +104,14 @@ export default function Screen() {
               aria-selected={tab === "signup"}
               aria-controls="auth-form"
               id="tab-signup"
-              onClick={() => { setTab("signup"); setError(""); }}
+              onClick={() => {
+                setTab("signup");
+                setError("");
+              }}
               className="px-6 py-3 text-sm font-bold uppercase tracking-[0.16em] transition-colors focus:outline-none focus:ring-2"
               style={{
-                borderBottom: tab === "signup" ? `2px solid ${brand.primaryColor}` : `2px solid transparent`,
+                borderBottom:
+                  tab === "signup" ? `2px solid ${brand.primaryColor}` : `2px solid transparent`,
                 marginBottom: "-2px",
                 color: tab === "signup" ? brand.primaryColor : brand.neutralColor,
               }}
@@ -116,12 +130,16 @@ export default function Screen() {
             onSubmit={handleSubmit}
           >
             <div className="space-y-2">
-              <label htmlFor="auth-email" className="block text-[11px] font-bold uppercase tracking-[0.16em]">Email</label>
+              <label
+                htmlFor="auth-email"
+                className="block text-[11px] font-bold uppercase tracking-[0.16em]"
+              >
+                Email
+              </label>
               <input
                 id="auth-email"
                 data-wf="i-2-0-0"
                 type="email"
-                required
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -130,12 +148,16 @@ export default function Screen() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="auth-password" className="block text-[11px] font-bold uppercase tracking-[0.16em]">Password (min 8 characters)</label>
+              <label
+                htmlFor="auth-password"
+                className="block text-[11px] font-bold uppercase tracking-[0.16em]"
+              >
+                Password (min 8 characters)
+              </label>
               <input
                 id="auth-password"
                 data-wf="i-2-0-1"
                 type="password"
-                required
                 autoComplete={tab === "signin" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -145,7 +167,11 @@ export default function Screen() {
             </div>
 
             {error && (
-              <p role="alert" className="px-4 py-3 text-sm font-semibold" style={{ border: `2px solid ${brand.accentColor}`, color: brand.accentColor }}>
+              <p
+                role="alert"
+                className="px-4 py-3 text-sm font-semibold"
+                style={{ border: `2px solid ${brand.accentColor}`, color: brand.accentColor }}
+              >
                 {error}
               </p>
             )}
@@ -164,7 +190,8 @@ export default function Screen() {
 
           {/* Row 5: text */}
           <p data-wf="b-4-0" className="mt-8 text-sm" style={{ color: brand.neutralColor }}>
-            Forgot your password? Password recovery is not available. If you lose access, your events and guest lists are permanently lost.
+            Forgot your password? Password recovery is not available. If you lose access, your
+            events and guest lists are permanently lost.
           </p>
         </div>
       </div>

@@ -1,6 +1,9 @@
 import { NavLink, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import type { ReactElement } from "react";
 
+import { apiFetch, clearSessionToken, getSessionToken } from "@/lib/api";
 import { Icons } from "@/lib/icons";
+import { useNavigate } from "@/lib/navigate";
 import Auth from "@/screens/Auth";
 import Events from "@/screens/Events";
 import EventEditor from "@/screens/EventEditor";
@@ -12,6 +15,37 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     "flex items-center gap-2 rounded-[var(--brand-radius)] px-3 py-2 text-sm font-medium transition-colors",
     isActive ? "bg-[var(--brand-hover)] text-[var(--brand-fg)]" : "text-[var(--brand-fg-muted)]",
   ].join(" ");
+
+// NFR-003: organiser pages require a valid session token. With no token, the
+// guard redirects to the sign-in page instead of rendering protected content.
+function ProtectedScreen({ children }: { children: ReactElement }) {
+  if (!getSessionToken()) {
+    return <Navigate to="/auth" replace />;
+  }
+  return children;
+}
+
+// The Sign Out nav control triggers the sign-out flow (POST /auth/signout, clear
+// the token, navigate to /auth) rather than just linking to /auth.
+function SignOutLink() {
+  const navigate = useNavigate();
+  async function handleSignOut(e: React.MouseEvent) {
+    e.preventDefault();
+    try {
+      await apiFetch("/auth/signout", { method: "POST" });
+    } catch {
+      // Even if the call fails, clear the local session and return to /auth.
+    }
+    clearSessionToken();
+    navigate("/auth");
+  }
+  return (
+    <a href="/auth" onClick={handleSignOut} className={navLinkClass({ isActive: false })}>
+      <Icons.X size={16} />
+      {"Sign Out"}
+    </a>
+  );
+}
 
 // The app's menu, drawn around every screen except the ones routed outside it below.
 function AppShellLayout() {
@@ -36,10 +70,7 @@ function AppShellLayout() {
               <Icons.Home size={16} />
               {"My Events"}
             </NavLink>
-            <NavLink to="/auth" className={navLinkClass}>
-              <Icons.X size={16} />
-              {"Sign Out"}
-            </NavLink>
+            <SignOutLink />
           </nav>
         </div>
       </header>
@@ -54,11 +85,35 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShellLayout />}>
-        <Route path="/events" element={<Events />} />
-        <Route path="/event-editor" element={<EventEditor />} />
-        <Route path="/guest-list" element={<GuestList />} />
+        <Route
+          path="/events"
+          element={
+            <ProtectedScreen>
+              <Events />
+            </ProtectedScreen>
+          }
+        />
+        <Route
+          path="/event-editor"
+          element={
+            <ProtectedScreen>
+              <EventEditor />
+            </ProtectedScreen>
+          }
+        />
+        <Route
+          path="/guest-list"
+          element={
+            <ProtectedScreen>
+              <GuestList />
+            </ProtectedScreen>
+          }
+        />
+        {/* /auth lives inside the shell so the app menu (and its "My Events"
+            link) stays visible on the sign-in screen, while the organiser
+            content behind the guard is not. */}
+        <Route path="/auth" element={<Auth />} />
       </Route>
-      <Route path="/auth" element={<Auth />} />
       <Route path="/public-event" element={<PublicEvent />} />
       <Route path="*" element={<Navigate to="/auth" replace />} />
     </Routes>

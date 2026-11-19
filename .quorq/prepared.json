@@ -1,0 +1,33 @@
+{
+  "key": {
+    "app_design_id": "b33ead9a-17e0-47e5-8961-dfb501cdd8a4",
+    "app_design_version": 1,
+    "architecture_document_id": "b2eed634-a8f8-4cd8-af97-b8ea0b0f5016",
+    "architecture_version": 4
+  },
+  "outcome": "prepared",
+  "packages": [
+    {
+      "ecosystem": "pypi",
+      "installed_version": "1.7.4",
+      "name": "passlib[bcrypt]",
+      "status": "installed",
+      "version": ">=1.7.4"
+    },
+    {
+      "ecosystem": "pypi",
+      "installed_version": "2.4.0",
+      "name": "email-validator",
+      "status": "installed",
+      "version": ">=2.0"
+    },
+    {
+      "ecosystem": "npm",
+      "error": "already provided by the scaffold",
+      "name": "react-router-dom",
+      "status": "skipped",
+      "version": ">=7.0"
+    }
+  ],
+  "prepared_by_run": "2fc4c45d-f14c-4103-85a1-46e88cee0633"
+}
