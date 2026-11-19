@@ -71,7 +71,9 @@ jobs:
       - name: Build the frontend
         working-directory: frontend
         run: |
-          # The committed lockfile's exact versions, with no install scripts run.
+          # The committed lockfile's exact versions, with no install scripts run. The starter
+          # app has no lockfile until the first sprint adds one: write it here, scripts off.
+          [ -f package-lock.json ] || npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --no-audit --no-fund --ignore-scripts
           npm run build
         env:
