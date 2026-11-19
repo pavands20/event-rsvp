@@ -2,6 +2,362 @@
 openapi: 3.1.0
 info:
   title: Event RSVP
-  version: architecture-v0
+  version: architecture-v4
   description: Designed API from the approved architecture (not extracted from code).
-paths: {}
+paths:
+  /auth/signin:
+    post:
+      summary: Sign in with email and password, return session token
+      description: Sign in with email and password, return session token
+      operationId: post_auth_signin
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email: str, password: str}'
+      responses:
+        '200':
+          description: '{token: str, organiser_id: uuid}'
+  /auth/signout:
+    post:
+      summary: Revoke the current session token
+      description: Revoke the current session token
+      operationId: post_auth_signout
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{}'
+      responses:
+        '200':
+          description: '{message: str}'
+      security:
+      - bearerAuth: []
+  /auth/signup:
+    post:
+      summary: Create an organiser account with email and password (min 8 chars),
+        return session token
+      description: Create an organiser account with email and password (min 8 chars),
+        return session token
+      operationId: post_auth_signup
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{email: str, password: str}'
+      responses:
+        '200':
+          description: '{token: str, organiser_id: uuid}'
+  /events:
+    get:
+      summary: List the organiser's events ordered upcoming first then past, with
+        Yes/No/Maybe counts
+      description: List the organiser's events ordered upcoming first then past, with
+        Yes/No/Maybe counts
+      operationId: get_events
+      parameters: []
+      responses:
+        '200':
+          description: '[{id, title, start_at, location, counts: {yes, no, maybe}}]'
+      security:
+      - bearerAuth: []
+    post:
+      summary: Create a new event with title, description, start_at, location, optional
+        capacity
+      description: Create a new event with title, description, start_at, location,
+        optional capacity
+      operationId: post_events
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{title: str, description: str?, start_at: datetime, location:
+                str, capacity: int?}'
+      responses:
+        '200':
+          description: '{id, public_token, title, ...}'
+      security:
+      - bearerAuth: []
+  /events/{event_id}:
+    get:
+      summary: Get details of an own event
+      description: Get details of an own event
+      operationId: get_events_event_id
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{id, title, description, start_at, location, capacity, public_token,
+            rsvps_open}'
+      security:
+      - bearerAuth: []
+    put:
+      summary: Update any field of an own event
+      description: Update any field of an own event
+      operationId: put_events_event_id
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{title: str, description: str?, start_at: datetime, location:
+                str, capacity: int?}'
+      responses:
+        '200':
+          description: '{id, title, ...}'
+      security:
+      - bearerAuth: []
+    delete:
+      summary: Delete an own event and all its RSVPs
+      description: Delete an own event and all its RSVPs
+      operationId: delete_events_event_id
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{message: str}'
+      security:
+      - bearerAuth: []
+  /events/{event_id}/guests:
+    get:
+      summary: Get the guest list for an own event, optionally filtered by response,
+        with total headcount
+      description: Get the guest list for an own event, optionally filtered by response,
+        with total headcount
+      operationId: get_events_event_id_guests
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{headcount: int, guests: [{guest_name, guest_email, response,
+            extra_guests, answered_at}]}'
+      security:
+      - bearerAuth: []
+  /events/{event_id}/guests.csv:
+    get:
+      summary: Download the guest list as a CSV file, optionally filtered by response
+      description: Download the guest list as a CSV file, optionally filtered by response
+      operationId: get_events_event_id_guests_csv
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 'text/csv file with headers: name,email,response,extra_guests,answered_at'
+      security:
+      - bearerAuth: []
+  /events/{event_id}/rsvp-status:
+    patch:
+      summary: Close or reopen RSVPs for an own event. Reopen is refused if start_at
+        has passed.
+      description: Close or reopen RSVPs for an own event. Reopen is refused if start_at
+        has passed.
+      operationId: patch_events_event_id_rsvp_status
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{rsvps_open: bool}'
+      responses:
+        '200':
+          description: '{id, rsvps_open}'
+      security:
+      - bearerAuth: []
+  /public/events/{token}:
+    get:
+      summary: Get public event details by token. No auth required. Does not expose
+        guest data.
+      description: Get public event details by token. No auth required. Does not expose
+        guest data.
+      operationId: get_public_events_token
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: '{title, description, start_at, location, rsvps_open, is_full:
+            bool?}'
+  /public/events/{token}/rsvp:
+    post:
+      summary: Submit or update an RSVP by email. Checks RSVP open status and capacity
+        for Yes answers.
+      description: Submit or update an RSVP by email. Checks RSVP open status and
+        capacity for Yes answers.
+      operationId: post_public_events_token_rsvp
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: '{guest_name: str, guest_email: str, response: Yes|No|Maybe,
+                extra_guests: int}'
+      responses:
+        '200':
+          description: '{guest_name, guest_email, response, extra_guests}'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    organisers:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        password_hash:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - email
+      - password_hash
+      - created_at
+    sessions:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organiser_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+      required:
+      - id
+      - organiser_id
+      - token
+      - created_at
+      - expires_at
+      - revoked
+    events:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organiser_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        location:
+          type: string
+        capacity:
+          type: integer
+        public_token:
+          type: string
+        rsvps_open:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - organiser_id
+      - title
+      - start_at
+      - location
+      - public_token
+      - rsvps_open
+      - created_at
+      - updated_at
+    rsvps:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        guest_name:
+          type: string
+        guest_email:
+          type: string
+        response:
+          type: string
+        extra_guests:
+          type: integer
+        answered_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - event_id
+      - guest_name
+      - guest_email
+      - response
+      - extra_guests
+      - answered_at
+      - updated_at

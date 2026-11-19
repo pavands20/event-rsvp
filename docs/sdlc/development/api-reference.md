@@ -7,7 +7,21 @@ _No routes found._
 <!-- sdlc:auto:end endpoints -->
 
 <!-- sdlc:auto:start drift -->
-_Code matches the designed API._
+**Designed but missing:**
+
+- DELETE /events/{event_id}
+- GET /events
+- GET /events/{event_id}
+- GET /events/{event_id}/guests
+- GET /events/{event_id}/guests.csv
+- GET /public/events/{token}
+- PATCH /events/{event_id}/rsvp-status
+- POST /auth/signin
+- POST /auth/signout
+- POST /auth/signup
+- POST /events
+- POST /public/events/{token}/rsvp
+- PUT /events/{event_id}
 <!-- sdlc:auto:end drift -->
 
 <!-- sdlc:auto:start source -->

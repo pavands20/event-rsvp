@@ -7,7 +7,11 @@ Pushes to `main` run `.github/workflows/deploy.yml`, which builds the API image 
 <!-- sdlc:auto:end how-it-deploys -->
 
 <!-- sdlc:auto:start environments -->
-_No environments recorded._
+| Name | Service | Runtime | Scaling | Environment |
+|---|---|---|---|---|
+| SPA Host | AWS S3 + CloudFront | Static file hosting | Single bucket, CloudFront edge-cached | dev |
+| API Host | AWS EC2 single instance | Python 3.12 / uvicorn | Single small instance, no autoscaling | dev |
+| PostgreSQL | AWS RDS | PostgreSQL 16 | Single db.t3.micro instance | dev |
 <!-- sdlc:auto:end environments -->
 
 <!-- sdlc:auto:start live -->
@@ -15,5 +19,11 @@ _Not deployed yet._
 <!-- sdlc:auto:end live -->
 
 <!-- sdlc:auto:start topology -->
-_No deployment topology recorded._
+```mermaid
+graph LR
+  n_SPA_Host["SPA Host<br/>AWS S3 + CloudFront"]
+  n_API_Host["API Host<br/>AWS EC2 single instance"]
+  n_PostgreSQL["PostgreSQL<br/>AWS RDS"]
+  n_API_Host -->|"TCP (Postgres wire protocol, TLS)"| n_PostgreSQL
+```
 <!-- sdlc:auto:end topology -->
