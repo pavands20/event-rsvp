@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.models import Organiser
+from app.models import Session as SessionModel
 from app.security import hash_password
 
 
@@ -125,6 +126,20 @@ def test_valid_token_authenticates_on_protected_endpoint(client: TestClient) -> 
 
     response = client.post("/auth/signout", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 204
+
+
+def test_signout_deletes_session_row(client: TestClient, db_session) -> None:  # type: ignore[no-untyped-def]
+    """US-003-1: signout deletes the session row so the token is no longer valid."""
+    email = _unique_email()
+    password = _password()
+    resp = client.post("/auth/signup", json={"email": email, "password": password})
+    token = resp.json()["token"]
+
+    response = client.post("/auth/signout", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 204
+
+    row = db_session.scalar(select(SessionModel).where(SessionModel.token == token))
+    assert row is None
 
 
 def test_missing_token_returns_401_not_authenticated(client: TestClient) -> None:

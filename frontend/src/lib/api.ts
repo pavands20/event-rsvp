@@ -63,6 +63,17 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     },
   });
   if (!response.ok) {
+    // NFR-003: a 401 means the session is gone (missing/expired/revoked). Clear
+    // the token and send the user back to the sign-in page. Only redirect when
+    // a token was present: a 401 on the auth screens themselves (wrong password
+    // on /auth/signin) is a credential error to surface, not a session expiry.
+    if (response.status === 401) {
+      const hadToken = getSessionToken() !== null;
+      clearSessionToken();
+      if (hadToken && typeof window !== "undefined" && window.location) {
+        window.location.assign("/auth");
+      }
+    }
     // NFR-008: surface the exact `detail` the API returned so the screen can
     // show "This email is already in use" rather than a generic status string.
     // Fall back to a status line when the body is not JSON or lacks `detail`

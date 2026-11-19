@@ -2,8 +2,9 @@
 
 Signup creates an organiser with a bcrypt-hashed password and issues an
 opaque session token. Signin verifies credentials and issues a token.
-Signout revokes the session. All tokens are opaque strings stored in the
-sessions table -- never JWTs -- so the server can revoke them at any time.
+Signout deletes the session row, revoking the token. All tokens are opaque
+strings stored in the sessions table -- never JWTs -- so the server can
+revoke them at any time.
 """
 
 from typing import Annotated
@@ -60,5 +61,5 @@ async def signout(
     session: Annotated[SessionModel, Depends(get_current_session)],
     db: DbSession,
 ) -> None:
-    session.revoked = True
+    db.delete(session)
     db.commit()
