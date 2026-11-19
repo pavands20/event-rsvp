@@ -109,8 +109,11 @@ export default function App() {
             </ProtectedScreen>
           }
         />
+        {/* /auth lives inside the shell so the app menu (and its "My Events"
+            link) stays visible on the sign-in screen, while the organiser
+            content behind the guard is not. */}
+        <Route path="/auth" element={<Auth />} />
       </Route>
-      <Route path="/auth" element={<Auth />} />
       <Route path="/public-event" element={<PublicEvent />} />
       <Route path="*" element={<Navigate to="/auth" replace />} />
     </Routes>

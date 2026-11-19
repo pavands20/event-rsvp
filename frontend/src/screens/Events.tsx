@@ -1,94 +1,143 @@
 // @ts-nocheck -- generated from the approved design under its JS runtime contract; not hand-written TypeScript.
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from "react";
 
 import * as UI from "@/lib/ui";
 import { Icons } from "@/lib/icons";
 import { brand } from "@/lib/brand";
 import { useNavigate } from "@/lib/navigate";
+import { apiFetch } from "@/lib/api";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { Button, Table, Empty } = UI;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { Button, Empty } = UI;
+
 const { Plus } = Icons;
 
-const SAMPLE_EVENTS = [
-  { id: 'evt_8f3a', title: 'Climbing Gym Meetup — Seattle Bouldering Project', start_at: '2026-11-26T18:00:00Z', capacity: 25, counts: { yes: 19, no: 2, maybe: 7 }, headcount: 25 },
-  { id: 'evt_2b71', title: 'Thursday Trail Run — Cougar Mountain', start_at: '2026-12-03T06:30:00Z', capacity: 30, counts: { yes: 12, no: 3, maybe: 5 }, headcount: 16 },
-  { id: 'evt_c4d9', title: 'Book Club: The Overstory', start_at: '2026-12-10T19:00:00Z', capacity: null, counts: { yes: 8, no: 1, maybe: 2 }, headcount: 9 },
-  { id: 'evt_9e2f', title: "New Year's Eve Potluck", start_at: '2026-12-31T20:00:00Z', capacity: 50, counts: { yes: 24, no: 6, maybe: 9 }, headcount: 33 },
-  { id: 'evt_5a8b', title: 'January Board Game Night', start_at: '2027-01-08T18:30:00Z', capacity: null, counts: { yes: 6, no: 0, maybe: 4 }, headcount: 7 },
-  { id: 'evt_1d6e', title: 'Autumn Hike — Mount Si', start_at: '2026-10-18T08:00:00Z', capacity: 25, counts: { yes: 18, no: 4, maybe: 3 }, headcount: 22 },
-  { id: 'evt_7c3a', title: 'Oktoberfest Potluck', start_at: '2026-10-25T17:00:00Z', capacity: null, counts: { yes: 31, no: 5, maybe: 8 }, headcount: 38 },
-  { id: 'evt_4f5c', title: 'Sunday Brunch — Capitol Hill', start_at: '2026-11-09T11:00:00Z', capacity: null, counts: { yes: 9, no: 2, maybe: 1 }, headcount: 11 },
-];
+type EventCounts = { yes: number; no: number; maybe: number };
+type EventListItem = {
+  id: string;
+  title: string;
+  start_at: string;
+  capacity: number | null;
+  counts: EventCounts;
+};
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function fmtDate(iso) {
+function fmtDate(iso: string) {
   var d = new Date(iso);
-  return String(d.getUTCDate()).padStart(2, '0') + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  return (
+    String(d.getUTCDate()).padStart(2, "0") +
+    " " +
+    MONTHS[d.getUTCMonth()] +
+    " " +
+    d.getUTCFullYear()
+  );
 }
 
-function fmtTime(iso) {
+function fmtTime(iso: string) {
   var d = new Date(iso);
-  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0') + ' UTC';
+  return (
+    String(d.getUTCHours()).padStart(2, "0") +
+    ":" +
+    String(d.getUTCMinutes()).padStart(2, "0") +
+    " UTC"
+  );
 }
 
-function hexToRgba(hex, alpha) {
+function hexToRgba(hex: string, alpha: number) {
   var r = parseInt(hex.slice(1, 3), 16);
   var g = parseInt(hex.slice(3, 5), 16);
   var b = parseInt(hex.slice(5, 7), 16);
-  return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+  return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
 }
 
 export default function Screen() {
   const navigate = useNavigate();
-  var NOW = new Date('2026-11-19T00:00:00Z');
+  const [events, setEvents] = React.useState<EventListItem[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    setLoading(true);
+    apiFetch<EventListItem[]>("/events")
+      .then((data) => {
+        if (!active) return;
+        if (Array.isArray(data)) {
+          setEvents(data);
+          setError("");
+        } else {
+          setEvents([]);
+          setError("Could not load events.");
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Could not load events.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  var NOW = new Date();
   var obsidian = brand.primaryColor;
   var accent = brand.accentColor;
   var neutral = brand.neutralColor;
   var bg = brand.backgroundColor;
 
-  var upcoming = SAMPLE_EVENTS
-    .filter(function (e) { return new Date(e.start_at) >= NOW; })
-    .sort(function (a, b) { return new Date(a.start_at) - new Date(b.start_at); });
+  var upcoming = events
+    .filter(function (e) {
+      return new Date(e.start_at) >= NOW;
+    })
+    .sort(function (a, b) {
+      return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    });
 
-  var past = SAMPLE_EVENTS
-    .filter(function (e) { return new Date(e.start_at) < NOW; })
-    .sort(function (a, b) { return new Date(b.start_at) - new Date(a.start_at); });
+  var past = events
+    .filter(function (e) {
+      return new Date(e.start_at) < NOW;
+    })
+    .sort(function (a, b) {
+      return new Date(b.start_at).getTime() - new Date(a.start_at).getTime();
+    });
 
-  var hasEvents = SAMPLE_EVENTS.length > 0;
+  var hasEvents = events.length > 0;
 
   var headerLabel = {
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    fontSize: '11px',
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    fontSize: "11px",
     fontWeight: 600,
     color: neutral,
     fontFamily: brand.fontBody,
   };
 
   var microLabel = {
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    fontSize: '10px',
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontSize: "10px",
     fontWeight: 600,
     fontFamily: brand.fontBody,
   };
 
   var countCell = {
-    padding: '10px 12px',
-    textAlign: 'center',
-    fontSize: '14px',
-    fontVariantNumeric: 'tabular-nums',
+    padding: "10px 12px",
+    textAlign: "center",
+    fontSize: "14px",
+    fontVariantNumeric: "tabular-nums",
     fontWeight: 500,
     fontFamily: brand.fontBody,
-    verticalAlign: 'top',
+    verticalAlign: "top",
   };
 
-  function renderRow(e, isPast) {
-    var isFull = e.capacity != null && e.headcount >= e.capacity;
+  function renderRow(e: EventListItem, isPast: boolean) {
+    // The list endpoint returns counts but not headcount; treat the Yes count
+    // as the confirmed headcount for the "Full" indicator.
+    var headcount = e.counts.yes;
+    var isFull = e.capacity != null && headcount >= e.capacity;
     var textColor = isPast ? neutral : obsidian;
     return (
       <tr
@@ -96,27 +145,75 @@ export default function Screen() {
         className="evt-row"
         tabIndex={0}
         role="button"
-        aria-label={'Open ' + e.title + ', ' + fmtDate(e.start_at) + '. ' + e.counts.yes + ' yes, ' + e.counts.no + ' no, ' + e.counts.maybe + ' maybe.'}
-        onClick={function () { navigate('event-editor'); }}
-        onKeyDown={function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('event-editor'); }
+        aria-label={
+          "Open " +
+          e.title +
+          ", " +
+          fmtDate(e.start_at) +
+          ". " +
+          e.counts.yes +
+          " yes, " +
+          e.counts.no +
+          " no, " +
+          e.counts.maybe +
+          " maybe."
+        }
+        onClick={function () {
+          navigate("event-editor");
         }}
-        style={{ borderBottom: '1px solid ' + hexToRgba(obsidian, 0.08) }}
+        onKeyDown={function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            navigate("event-editor");
+          }
+        }}
+        style={{ borderBottom: "1px solid " + hexToRgba(obsidian, 0.08) }}
       >
-        <td style={{ padding: '10px 16px', verticalAlign: 'top' }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: textColor, fontVariantNumeric: 'tabular-nums', fontFamily: brand.fontBody }}>
+        <td style={{ padding: "10px 16px", verticalAlign: "top" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: textColor,
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: brand.fontBody,
+            }}
+          >
             {fmtDate(e.start_at)}
           </div>
-          <div style={{ fontSize: '12px', color: neutral, fontVariantNumeric: 'tabular-nums', fontFamily: brand.fontBody, marginTop: '1px' }}>
+          <div
+            style={{
+              fontSize: "12px",
+              color: neutral,
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: brand.fontBody,
+              marginTop: "1px",
+            }}
+          >
             {fmtTime(e.start_at)}
           </div>
         </td>
-        <td style={{ padding: '10px 16px', verticalAlign: 'top' }}>
-          <div style={{ fontSize: '14px', fontWeight: 500, color: textColor, fontFamily: brand.fontBody, lineHeight: 1.4, wordBreak: 'break-word' }}>
+        <td style={{ padding: "10px 16px", verticalAlign: "top" }}>
+          <div
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: textColor,
+              fontFamily: brand.fontBody,
+              lineHeight: 1.4,
+              wordBreak: "break-word",
+            }}
+          >
             {e.title}
           </div>
           {isFull && (
-            <span style={Object.assign({}, microLabel, { color: accent, marginTop: '4px', display: 'inline-block' })}>
+            <span
+              style={Object.assign({}, microLabel, {
+                color: accent,
+                marginTop: "4px",
+                display: "inline-block",
+              })}
+            >
               Full
             </span>
           )}
@@ -129,15 +226,17 @@ export default function Screen() {
   }
 
   return (
-    <div style={{
-      '--hover-bg': hexToRgba(obsidian, 0.04),
-      '--focus-color': obsidian,
-      maxWidth: '960px',
-      margin: '0 auto',
-      padding: '32px 24px',
-      fontFamily: brand.fontBody,
-      color: obsidian,
-    }}>
+    <div
+      style={{
+        "--hover-bg": hexToRgba(obsidian, 0.04),
+        "--focus-color": obsidian,
+        maxWidth: "960px",
+        margin: "0 auto",
+        padding: "32px 24px",
+        fontFamily: brand.fontBody,
+        color: obsidian,
+      }}
+    >
       <style>{`
         .evt-row { transition: background-color 0.12s ease; cursor: pointer; }
         .evt-row:hover { background-color: var(--hover-bg); }
@@ -148,110 +247,206 @@ export default function Screen() {
 
       {/* Row 1: Page title */}
       <div data-wf="b-0-0">
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
-          color: obsidian,
-          margin: 0,
-          lineHeight: 1.2,
-          fontFamily: brand.fontHeading,
-        }}>
+        <h1
+          style={{
+            fontSize: "28px",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            color: obsidian,
+            margin: 0,
+            lineHeight: 1.2,
+            fontFamily: brand.fontHeading,
+          }}
+        >
           My Events
         </h1>
-        <p style={{
-          fontSize: '11px',
-          color: neutral,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginTop: '8px',
-          marginBottom: 0,
-          fontFamily: brand.fontBody,
-        }}>
-          {upcoming.length} upcoming · {past.length} past
+        <p
+          style={{
+            fontSize: "11px",
+            color: neutral,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            marginTop: "8px",
+            marginBottom: 0,
+            fontFamily: brand.fontBody,
+          }}
+        >
+          {upcoming.length} upcoming · {past.length} past · All times in UTC
         </p>
       </div>
 
       {/* Row 2: Create Event button */}
-      <div data-wf="b-1-0" style={{ marginTop: '24px' }}>
+      <div data-wf="b-1-0" style={{ marginTop: "24px" }}>
         <Button
           data-wf="b-1-0"
           className="evt-btn"
-          onClick={function () { navigate('event-editor'); }}
+          onClick={function () {
+            navigate("event-editor");
+          }}
           style={{
             backgroundColor: obsidian,
             color: bg,
             borderRadius: brand.radius,
-            border: 'none',
-            padding: '9px 18px',
-            fontSize: '13px',
+            border: "none",
+            padding: "9px 18px",
+            fontSize: "13px",
             fontWeight: 600,
             fontFamily: brand.fontBody,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
             lineHeight: 1,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
           }}
         >
-          <Plus aria-hidden="true" style={{ width: '15px', height: '15px' }} />
+          <Plus aria-hidden="true" style={{ width: "15px", height: "15px" }} />
           Create Event
         </Button>
       </div>
 
-      {/* Row 3: Table */}
-      {hasEvents && (
-        <div data-wf="b-2-0" style={{ marginTop: '24px', overflowX: 'auto' }}>
-          <table style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            border: '2px solid ' + obsidian,
+      {/* Row 3: Loading state */}
+      {loading && (
+        <div data-wf="b-2-0" style={{ marginTop: "24px", padding: "24px 0" }}>
+          <p style={{ fontSize: "14px", color: neutral, fontFamily: brand.fontBody }}>
+            Loading your events…
+          </p>
+        </div>
+      )}
+
+      {/* Row 4: Error state */}
+      {!loading && error && (
+        <div
+          data-wf="b-2-1"
+          role="alert"
+          style={{
+            marginTop: "24px",
+            border: "2px solid " + accent,
+            borderRadius: brand.radius,
+            padding: "16px",
+            color: accent,
+            fontSize: "14px",
             fontFamily: brand.fontBody,
-            tableLayout: 'fixed',
-          }}>
-            <caption style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', border: 0 }}>
+          }}
+        >
+          <Icons.AlertCircle
+            size={16}
+            aria-hidden="true"
+            style={{ verticalAlign: "middle", marginRight: "8px" }}
+          />
+          {error}
+        </div>
+      )}
+
+      {/* Row 5: Table */}
+      {!loading && !error && hasEvents && (
+        <div data-wf="b-2-2" style={{ marginTop: "24px", overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              border: "2px solid " + obsidian,
+              fontFamily: brand.fontBody,
+              tableLayout: "fixed",
+            }}
+          >
+            <caption
+              style={{
+                position: "absolute",
+                width: "1px",
+                height: "1px",
+                padding: 0,
+                margin: "-1px",
+                overflow: "hidden",
+                clip: "rect(0 0 0 0)",
+                border: 0,
+              }}
+            >
               Your events with RSVP counts, upcoming first then past
             </caption>
             <colgroup>
-              <col style={{ width: '140px' }} />
+              <col style={{ width: "140px" }} />
               <col />
-              <col style={{ width: '56px' }} />
-              <col style={{ width: '56px' }} />
-              <col style={{ width: '66px' }} />
+              <col style={{ width: "56px" }} />
+              <col style={{ width: "56px" }} />
+              <col style={{ width: "66px" }} />
             </colgroup>
             <thead>
-              <tr style={{ borderBottom: '2px solid ' + obsidian }}>
-                <th data-wf="i-2-0-0" style={Object.assign({}, headerLabel, { textAlign: 'left', padding: '8px 16px' })}>Date</th>
-                <th data-wf="i-2-0-1" style={Object.assign({}, headerLabel, { textAlign: 'left', padding: '8px 16px' })}>Title</th>
-                <th data-wf="i-2-0-2" style={Object.assign({}, headerLabel, { textAlign: 'center', padding: '8px 12px' })}>Yes</th>
-                <th data-wf="i-2-0-3" style={Object.assign({}, headerLabel, { textAlign: 'center', padding: '8px 12px' })}>No</th>
-                <th data-wf="i-2-0-4" style={Object.assign({}, headerLabel, { textAlign: 'center', padding: '8px 12px' })}>Maybe</th>
+              <tr style={{ borderBottom: "2px solid " + obsidian }}>
+                <th
+                  data-wf="i-2-0-0"
+                  style={Object.assign({}, headerLabel, { textAlign: "left", padding: "8px 16px" })}
+                >
+                  Date
+                </th>
+                <th
+                  data-wf="i-2-0-1"
+                  style={Object.assign({}, headerLabel, { textAlign: "left", padding: "8px 16px" })}
+                >
+                  Title
+                </th>
+                <th
+                  data-wf="i-2-0-2"
+                  style={Object.assign({}, headerLabel, {
+                    textAlign: "center",
+                    padding: "8px 12px",
+                  })}
+                >
+                  Yes
+                </th>
+                <th
+                  data-wf="i-2-0-3"
+                  style={Object.assign({}, headerLabel, {
+                    textAlign: "center",
+                    padding: "8px 12px",
+                  })}
+                >
+                  No
+                </th>
+                <th
+                  data-wf="i-2-0-4"
+                  style={Object.assign({}, headerLabel, {
+                    textAlign: "center",
+                    padding: "8px 12px",
+                  })}
+                >
+                  Maybe
+                </th>
               </tr>
             </thead>
             <tbody>
-              {upcoming.map(function (e) { return renderRow(e, false); })}
+              {upcoming.map(function (e) {
+                return renderRow(e, false);
+              })}
               {upcoming.length > 0 && past.length > 0 && (
-                <tr style={{ borderTop: '2px solid ' + obsidian }}>
-                  <td colSpan={5} style={Object.assign({}, microLabel, { color: neutral, padding: '6px 16px' })}>
+                <tr style={{ borderTop: "2px solid " + obsidian }}>
+                  <td
+                    colSpan={5}
+                    style={Object.assign({}, microLabel, { color: neutral, padding: "6px 16px" })}
+                  >
                     Past Events
                   </td>
                 </tr>
               )}
-              {past.map(function (e) { return renderRow(e, true); })}
+              {past.map(function (e) {
+                return renderRow(e, true);
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Row 4: Empty state */}
-      {!hasEvents && (
-        <div data-wf="b-3-0" style={{
-          marginTop: '24px',
-          border: '2px solid ' + obsidian,
-          borderRadius: brand.radius,
-          padding: '48px 32px',
-        }}>
+      {/* Row 6: Empty state */}
+      {!loading && !error && !hasEvents && (
+        <div
+          data-wf="b-3-0"
+          style={{
+            marginTop: "24px",
+            border: "2px solid " + obsidian,
+            borderRadius: brand.radius,
+            padding: "48px 32px",
+          }}
+        >
           <Empty
             title="You have no events yet"
             description="Click 'Create Event' to publish your first event and start collecting RSVPs."
